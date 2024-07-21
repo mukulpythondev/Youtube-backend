@@ -1,7 +1,7 @@
 import ApiError from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { User } from "../models/user.model.js";
-import uploadOnCloudinary from "../utils/cloudinary.js";
+import uploadOnCloudinary, { deleteOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken"
 import mongoose from "mongoose";
@@ -101,8 +101,8 @@ export const loginUser= asyncHandler(async (req,res)=>{
 })
 export const logoutUser= asyncHandler(async(req,res)=>{
             await User.findByIdAndUpdate(req.user._id, {
-              $set:{
-                refreshToken:undefined
+              $unset:{
+                refreshToken:1  // better than undefined
               }
             },
           {
@@ -135,8 +135,10 @@ export const currentUser= asyncHandler(async(req,res)=>{
 })
 export const updateAccountDetails= asyncHandler(async(req,res)=>{
   const {fullname,email}= req.body
-
-  const user = await User.findByIdAndUpdate(req?.user?._id,{
+   if(!(fullname?.trim() || email?.trim()) ){
+    throw new ApiError(400, "Field not be empty")
+   }
+  const user = await User.findByIdAndUpdate(req.user?._id,{
     $set:{
       fullname:fullname,
       email  // both are correct
@@ -148,6 +150,7 @@ export const updateAccountDetails= asyncHandler(async(req,res)=>{
 
 })
 export const updateAvatar= asyncHandler(async(req,res)=>{
+  const oldavatar= req?.user.avatar
   const avatarPath= req?.file?.path
   if(!avatarPath)
     throw new ApiError(400,"Avatar File is missing!")
@@ -161,11 +164,14 @@ export const updateAvatar= asyncHandler(async(req,res)=>{
    },{
     new:true
    }).select("-password")
+   deleteOnCloudinary(oldavatar)
+
    return res.status(200).json(
     new ApiResponse(200,user, "Avatar updated successfully!")
    )
 })
 export const updateCoverImage= asyncHandler(async(req,res)=>{
+  const oldCoverImage= req?.user.coverImage
   const CoverImagePath= req?.file?.path
   if(!CoverImagePath)
     throw new ApiError(400,"Cover Image  File is missing!")
@@ -179,6 +185,7 @@ export const updateCoverImage= asyncHandler(async(req,res)=>{
    },{
     new:true
    }).select("-password")
+   deleteOnCloudinary(oldCoverImage)
    return res.status(200).json(
     new ApiResponse(200,user, "Cover Image updated successfully!")
    )

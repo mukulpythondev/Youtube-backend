@@ -172,7 +172,7 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
         throw new ApiError(404,"Video is not found.")
     }
     if(video.owner.toString()!== req?.user._id?.toString())
-        throw new ApiError(400, "Only Owner can updatet the video")
+        throw new ApiError(400, "Only Owner can update the video")
     const publishVideoStatus= await Video.findByIdAndUpdate(videoId,{
         isPublished: !video.isPublished
     },{
